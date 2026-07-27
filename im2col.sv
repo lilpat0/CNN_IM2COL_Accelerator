@@ -9,13 +9,13 @@ module a_provider_im2col
   input  logic                     clk,
   input  logic                     rst_n,
  
-  // query seam from cnn_top (a_m already includes the tile base)
-  input  logic [MW-1:0]            a_m,
-  input  logic [KW-1:0]            a_k,
+  
+  input  logic [MW-1:0]            a_m, // chooses the output pixel to calculate
+  input  logic [KW-1:0]            a_k, // chooses the filter pixel to choose
   output logic signed [DATA_W-1:0] a_data,   // CONTRACT: valid exactly
                                              // 1 cycle after a_m/a_k
  
-  // load port - real ports, never hierarchical TB access
+  
   input  logic                     load_we,
   input  logic [IF_AW-1:0]         load_addr,
   input  logic signed [DATA_W-1:0] load_data
