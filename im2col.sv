@@ -31,11 +31,6 @@ module a_provider_im2col
  
   logic signed [DATA_W-1:0] ifmap_mem [0:H*W-1];   // 64 x INT8
  
-  // -----------------------------------------------------------------
-  // TODO (A-1): radix-6 decode of a_m -> {mr, mc}
-  //   36-entry case. Generate it, don't hand-type it.
-  //   default arm covers the padded region 36..47.
-  // -----------------------------------------------------------------
  function automatic logic [5:0] dec6(input logic [5:0] lin);
     case (lin)
       6'd0 : dec6 = {3'd0, 3'd0};
@@ -78,33 +73,42 @@ module a_provider_im2col
     endcase
   endfunction
  
+ function automatic logic [3:0] dec3(input logic [3:0] lin);
+    case (lin)
+      4'd0: dec3 = {2'd0, 2'd0};
+      4'd1: dec3 = {2'd0, 2'd1};
+      4'd2: dec3 = {2'd0, 2'd2};
+      4'd3: dec3 = {2'd1, 2'd0};
+      4'd4: dec3 = {2'd1, 2'd1};
+      4'd5: dec3 = {2'd1, 2'd2};
+      4'd6: dec3 = {2'd2, 2'd0};
+      4'd7: dec3 = {2'd2, 2'd1};
+      4'd8: dec3 = {2'd2, 2'd2};
+      default: dec3 = {2'd0, 2'd0};
+    endcase
+  endfunction
 
-  // -----------------------------------------------------------------
-  // TODO (A-2): radix-3 decode of a_k -> {kr, kc}
-  //   9-entry case, default {2'd0, 2'd0}.
-  //   NOTE: this is a DIFFERENT function from A-1. Two decoders.
-  // -----------------------------------------------------------------
- 
-  // -----------------------------------------------------------------
-  // TODO (A-3): address math and range check, both combinational.
-  //   row = mr + kr;  col = mc + kc;   (no carry possible, 3 bits)
-  //   ifmap_addr = {row, col};          (W=8, so row*8 is free)
-  //   a_valid    = (a_m < M) && (a_k < K);
-  // -----------------------------------------------------------------
- 
-  // -----------------------------------------------------------------
-  // TODO (A-4): single always_ff holding
-  //   - load write:  if (load_we) ifmap_mem[load_addr] <= load_data;
-  //   - datapath read (REGISTERED): ifmap_rdata <= ifmap_mem[ifmap_addr];
-  //   - the validity pipeline:      a_valid_q   <= a_valid;
-  //   rst_n clears a_valid_q ONLY. Never reset the array.
-  // -----------------------------------------------------------------
- 
-  // -----------------------------------------------------------------
-  // TODO (A-5): output mux
-  //   a_data = a_valid_q ? ifmap_rdata : '0;
-  //   Must use a_valid_q, not a_valid.
-  // -----------------------------------------------------------------
+ always_comb begin
+    {mr, mc}   = dec6(a_m);
+    {kr, kc}   = dec3(a_k);
+    row        = mr + kr;                      // 0..7, no carry out
+    col        = mc + kc;                      // 0..7, no carry out
+    ifmap_addr = {row, col};                   // == row*8 + col, W=8 only
+    a_valid    = (a_m < M) && (a_k < K);
+  end
+
+// 
+ always_ff @(posedge clk or negedge rst) begin
+    if (!rst_n) begin
+      a_valid_q <= 1'b0;
+    end else begin
+      if (load_we) ifmap_mem[load_addr] <= load_data;
+      ifmap_rdata <= ifmap_mem[ifmap_addr];
+      a_valid_q   <= a_valid;
+    end
+  end
+
+  assign a_data = a_valid_q ? ifmap_rdata : '0;
  
 endmodule
  
