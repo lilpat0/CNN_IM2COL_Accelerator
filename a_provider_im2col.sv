@@ -4,7 +4,7 @@
 //   Contains no FSM and no counters of its own.
 //=====================================================================
 module a_provider_im2col
-  import cnn_pkg::*;
+  import system_params.sv::*;
 (
   input  logic                     clk,
   input  logic                     rst_n,
@@ -36,8 +36,49 @@ module a_provider_im2col
   //   36-entry case. Generate it, don't hand-type it.
   //   default arm covers the padded region 36..47.
   // -----------------------------------------------------------------
+ function automatic logic [5:0] dec6(input logic [5:0] lin);
+    case (lin)
+      6'd0 : dec6 = {3'd0, 3'd0};
+      6'd1 : dec6 = {3'd0, 3'd1};
+      6'd2 : dec6 = {3'd0, 3'd2};
+      6'd3 : dec6 = {3'd0, 3'd3};
+      6'd4 : dec6 = {3'd0, 3'd4};
+      6'd5 : dec6 = {3'd0, 3'd5};
+      6'd6 : dec6 = {3'd1, 3'd0};
+      6'd7 : dec6 = {3'd1, 3'd1};
+      6'd8 : dec6 = {3'd1, 3'd2};
+      6'd9 : dec6 = {3'd1, 3'd3};
+      6'd10: dec6 = {3'd1, 3'd4};
+      6'd11: dec6 = {3'd1, 3'd5};
+      6'd12: dec6 = {3'd2, 3'd0};
+      6'd13: dec6 = {3'd2, 3'd1};
+      6'd14: dec6 = {3'd2, 3'd2};
+      6'd15: dec6 = {3'd2, 3'd3};
+      6'd16: dec6 = {3'd2, 3'd4};
+      6'd17: dec6 = {3'd2, 3'd5};
+      6'd18: dec6 = {3'd3, 3'd0};
+      6'd19: dec6 = {3'd3, 3'd1};
+      6'd20: dec6 = {3'd3, 3'd2};
+      6'd21: dec6 = {3'd3, 3'd3};
+      6'd22: dec6 = {3'd3, 3'd4};
+      6'd23: dec6 = {3'd3, 3'd5};
+      6'd24: dec6 = {3'd4, 3'd0};
+      6'd25: dec6 = {3'd4, 3'd1};
+      6'd26: dec6 = {3'd4, 3'd2};
+      6'd27: dec6 = {3'd4, 3'd3};
+      6'd28: dec6 = {3'd4, 3'd4};
+      6'd29: dec6 = {3'd4, 3'd5};
+      6'd30: dec6 = {3'd5, 3'd0};
+      6'd31: dec6 = {3'd5, 3'd1};
+      6'd32: dec6 = {3'd5, 3'd2};
+      6'd33: dec6 = {3'd5, 3'd3};
+      6'd34: dec6 = {3'd5, 3'd4};
+      6'd35: dec6 = {3'd5, 3'd5};
+      default: dec6 = {3'd0, 3'd0};
+    endcase
+  endfunction
  
- 
+
   // -----------------------------------------------------------------
   // TODO (A-2): radix-3 decode of a_k -> {kr, kc}
   //   9-entry case, default {2'd0, 2'd0}.
@@ -67,5 +108,3 @@ module a_provider_im2col
  
 endmodule
  
- 
-//=====================================================================
