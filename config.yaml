@@ -1,0 +1,105 @@
+meta:
+  version: 1
+
+# ======================
+# Design
+# ======================
+
+DESIGN_NAME: top
+
+VERILOG_FILES:
+  - dir::src/CNN.sv
+  - dir::src/MAC.sv
+  - dir::src/FSM_Controller.sv
+  - dir::src/memory.sv
+
+
+# ======================
+# Clock
+# ======================
+
+CLOCK_PORT: clk
+CLOCK_PERIOD: 10.0
+
+
+# ======================
+# PDK
+# ======================
+
+PDK: sky130A
+STD_CELL_LIBRARY: sky130_fd_sc_hd
+
+
+# ======================
+# Constraints
+# ======================
+
+PNR_SDC_FILE: dir::src/top.sdc
+SIGNOFF_SDC_FILE: dir::src/top.sdc
+
+
+# ======================
+# Floorplan
+# ======================
+
+FP_SIZING: relative
+
+# Leave routing room for 9 MACs
+FP_CORE_UTIL: 35
+
+FP_ASPECT_RATIO: 1.0
+
+
+# ======================
+# Placement
+# ======================
+
+# Lower density helps congestion
+PL_TARGET_DENSITY: 0.45
+
+PL_RESIZER_TIMING_OPTIMIZATIONS: true
+
+GLB_RESIZER_TIMING_OPTIMIZATIONS: true
+
+
+# ======================
+# Synthesis
+# ======================
+
+MAX_FANOUT_CONSTRAINT: 6
+
+SYNTH_BUFFERING: true
+
+
+# ======================
+# Antenna
+# ======================
+
+RUN_ANTENNA_REPAIR: true
+
+
+# ======================
+# Power
+# ======================
+
+VDD_NETS:
+  - VPWR
+
+GND_NETS:
+  - VGND
+
+
+# ======================
+# Sky130 tuning
+# ======================
+
+pdk::sky130A:
+
+  FP_CORE_UTIL: 35
+
+  PL_TARGET_DENSITY_PCT:
+    expr::($FP_CORE_UTIL + 10)
+
+  scl::sky130_fd_sc_hd:
+
+    CLOCK_PERIOD: 10.0
