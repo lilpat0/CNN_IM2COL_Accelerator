@@ -1,0 +1,114 @@
+//=====================================================================
+// a_provider_im2col   -- person A
+//   The im2col layer. Answers "what is A[a_m][a_k]?" in one cycle.
+//   Contains no FSM and no counters of its own.
+//=====================================================================
+module a_provider_im2col
+  import system_params::*;
+(
+  input  logic                     clk,
+  input  logic                     rst_n,
+ 
+  // query seam from cnn_top (a_m already includes the tile base)
+  input  logic [M_W-1:0]            a_m,
+  input  logic [K_W-1:0]            a_k,
+  output logic signed [DATA_W-1:0] a_data,   // CONTRACT: valid exactly
+                                             // 1 cycle after a_m/a_k
+ 
+  // load port - real ports, never hierarchical TB access
+  input  logic                     load_we,
+  input  logic [IF_AW-1:0]         load_addr,
+  input  logic signed [DATA_W-1:0] load_data
+);
+ 
+  logic [2:0]              mr, mc;      // 0..5, radix-6 decode of a_m
+  logic [1:0]              kr, kc;      // 0..2, radix-3 decode of a_k
+  logic [2:0]              row, col;    // 0..7, exactly 3 bits each
+  logic [IF_AW-1:0]        ifmap_addr;
+  logic                    a_valid;
+  logic                    a_valid_q;
+  logic signed [DATA_W-1:0] ifmap_rdata;
+ 
+  logic signed [DATA_W-1:0] ifmap_mem [0:H*W-1];   // 64 x INT8
+ 
+ function automatic logic [5:0] dec6(input logic [5:0] lin);
+    case (lin)
+      6'd0 : dec6 = {3'd0, 3'd0};
+      6'd1 : dec6 = {3'd0, 3'd1};
+      6'd2 : dec6 = {3'd0, 3'd2};
+      6'd3 : dec6 = {3'd0, 3'd3};
+      6'd4 : dec6 = {3'd0, 3'd4};
+      6'd5 : dec6 = {3'd0, 3'd5};
+      6'd6 : dec6 = {3'd1, 3'd0};
+      6'd7 : dec6 = {3'd1, 3'd1};
+      6'd8 : dec6 = {3'd1, 3'd2};
+      6'd9 : dec6 = {3'd1, 3'd3};
+      6'd10: dec6 = {3'd1, 3'd4};
+      6'd11: dec6 = {3'd1, 3'd5};
+      6'd12: dec6 = {3'd2, 3'd0};
+      6'd13: dec6 = {3'd2, 3'd1};
+      6'd14: dec6 = {3'd2, 3'd2};
+      6'd15: dec6 = {3'd2, 3'd3};
+      6'd16: dec6 = {3'd2, 3'd4};
+      6'd17: dec6 = {3'd2, 3'd5};
+      6'd18: dec6 = {3'd3, 3'd0};
+      6'd19: dec6 = {3'd3, 3'd1};
+      6'd20: dec6 = {3'd3, 3'd2};
+      6'd21: dec6 = {3'd3, 3'd3};
+      6'd22: dec6 = {3'd3, 3'd4};
+      6'd23: dec6 = {3'd3, 3'd5};
+      6'd24: dec6 = {3'd4, 3'd0};
+      6'd25: dec6 = {3'd4, 3'd1};
+      6'd26: dec6 = {3'd4, 3'd2};
+      6'd27: dec6 = {3'd4, 3'd3};
+      6'd28: dec6 = {3'd4, 3'd4};
+      6'd29: dec6 = {3'd4, 3'd5};
+      6'd30: dec6 = {3'd5, 3'd0};
+      6'd31: dec6 = {3'd5, 3'd1};
+      6'd32: dec6 = {3'd5, 3'd2};
+      6'd33: dec6 = {3'd5, 3'd3};
+      6'd34: dec6 = {3'd5, 3'd4};
+      6'd35: dec6 = {3'd5, 3'd5};
+      default: dec6 = {3'd0, 3'd0};
+    endcase
+  endfunction
+ 
+ function automatic logic [3:0] dec3(input logic [3:0] lin);
+    case (lin)
+      4'd0: dec3 = {2'd0, 2'd0};
+      4'd1: dec3 = {2'd0, 2'd1};
+      4'd2: dec3 = {2'd0, 2'd2};
+      4'd3: dec3 = {2'd1, 2'd0};
+      4'd4: dec3 = {2'd1, 2'd1};
+      4'd5: dec3 = {2'd1, 2'd2};
+      4'd6: dec3 = {2'd2, 2'd0};
+      4'd7: dec3 = {2'd2, 2'd1};
+      4'd8: dec3 = {2'd2, 2'd2};
+      default: dec3 = {2'd0, 2'd0};
+    endcase
+  endfunction
+
+ always_comb begin
+    {mr, mc}   = dec6(a_m);
+    {kr, kc}   = dec3(a_k);
+    row        = mr + kr;                      // 0..7, no carry out
+    col        = mc + kc;                      // 0..7, no carry out
+    ifmap_addr = {row, col};                   // == row*8 + col, W=8 only
+    a_valid    = (a_m < M) && (a_k < K);
+  end
+
+// 
+ always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      a_valid_q <= 1'b0;
+    end else begin
+      if (load_we) ifmap_mem[load_addr] <= load_data;
+      ifmap_rdata <= ifmap_mem[ifmap_addr];
+      a_valid_q   <= a_valid;
+    end
+  end
+
+  assign a_data = a_valid_q ? ifmap_rdata : '0;
+ 
+endmodule
+ 
