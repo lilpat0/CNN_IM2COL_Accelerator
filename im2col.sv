@@ -98,7 +98,7 @@ module a_provider_im2col
   end
 
 // 
- always_ff @(posedge clk or negedge rst) begin
+ always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       a_valid_q <= 1'b0;
     end else begin
